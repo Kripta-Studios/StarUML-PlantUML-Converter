@@ -36,4 +36,4 @@ This repository contains a bidirectional plugin to convert StarUML models to Pla
 ## License & Credits
 
 Developed and Maintained by **Kripta Studios**.
-Licensed under The Unlicense (Public Domain).
+Licensed under the MIT License.
