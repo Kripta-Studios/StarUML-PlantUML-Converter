@@ -1,0 +1,346 @@
+@startuml Age_of_Empires_Final
+
+skinparam classAttributeIconSize 0
+skinparam classFontSize 12
+skinparam packageStyle rectangle
+skinparam linetype ortho
+skinparam packageBackgroundColor #F8F8FF
+skinparam classBackgroundColor #FFFFFE
+skinparam interfaceBackgroundColor #E8F4E8
+skinparam abstractClassBackgroundColor #FFF8E8
+
+' ═══════════════════════════════════════════════
+' PAQUETE: CORE Y CONTROL
+' ═══════════════════════════════════════════════
+package "Core y Control" {
+
+  class Juego {
+    - maxJugadores: int = 4
+    - turnoActual: int
+    + iniciarPartida()
+    + pasarTurno()
+    + obtenerJugadorActivo(): Jugador
+    + cargarMapa(origen: String)
+    + listarCivilizaciones()
+    + verificarCondicionDerrota()
+  }
+
+  class ControladorTurno {
+    - accionesRealizadas: int
+    - accionesMinimas: int
+    - accionesMaximas: int
+    + registrarAccion()
+    + puedePasarTurno(): boolean
+    + puedeRealizarAccion(): boolean
+    + reiniciar()
+  }
+
+  class InterfazASCII {
+    + dibujarMapa(mapa: Mapa, jugador: Jugador)
+    + listarPersonajesYEdificios(civ: Civilizacion)
+    + describirCelda(celda: Celda)
+    + describirPersonaje(p: Personaje)
+    + describirEdificio(e: Edificio)
+    + describirContenedorRecurso(c: ContenedorRecurso)
+    + mostrarRecursosCivilizacion(civ: Civilizacion)
+    + leerComando(): String
+  }
+
+  enum DireccionMovimiento {
+    NORTE
+    SUR
+    ESTE
+    OESTE
+  }
+}
+
+' ═══════════════════════════════════════════════
+' PAQUETE: GESTIÓN DE JUGADORES
+' ═══════════════════════════════════════════════
+package "Gestión de Jugadores" {
+
+  class Jugador {
+    - nombre: String
+    - eliminado: boolean
+    + isEliminado(): boolean
+    + verificarDerrota()
+    + actuarEnTurno()
+  }
+
+  class Civilizacion {
+    - nombre: String
+    - maderaAcumulada: int
+    - piedraAcumulada: int
+    - alimentoAcumulado: int
+    + agregarRecurso(tipo: TipoRecurso, cantidad: int)
+    + consumirRecurso(tipo: TipoRecurso, cantidad: int): boolean
+    + tieneRecursosSuficientes(madera: int, piedra: int, alimento: int): boolean
+    + listarPersonajes(): List<Personaje>
+    + listarEdificios(): List<Edificio>
+    + getCiudadelas(): List<Ciudadela>
+  }
+
+  class RegistroVisibilidad {
+    + marcarVisible(celda: Celda)
+    + esVisible(celda: Celda): boolean
+    + getCeldasVisibles(): List<Celda>
+  }
+}
+
+' ═══════════════════════════════════════════════
+' PAQUETE: ENTORNO Y TERRENO
+' ═══════════════════════════════════════════════
+package "Entorno y Terreno" {
+
+  class Mapa {
+    - filas: int
+    - columnas: int
+    + getCelda(fila: int, col: int): Celda
+    + generarAleatorio()
+    + cargarDesdeArchivo(ruta: String)
+    + cargarPorDefecto()
+    + getAdyacentes(celda: Celda): List<Celda>
+    + getCeldasEnRango(origen: Celda, rango: int): List<Celda>
+  }
+
+  class Celda {
+    - fila: int
+    - columna: int
+    - tipo: TipoCelda
+    - transitable: boolean
+    + esTransitable(): boolean
+    + setTransitable(v: boolean)
+    + getContenidoRecurso(): ContenedorRecurso
+    + getEdificio(): Edificio
+    + getPersonajes(): List<Personaje>
+    + describir(): String
+  }
+
+  enum TipoCelda {
+    BOSQUE
+    CANTERA
+    ARBUSTO
+    PRADERA
+  }
+}
+
+' ═══════════════════════════════════════════════
+' PAQUETE: ECONOMÍA Y RECURSOS
+' ═══════════════════════════════════════════════
+package "Economía y Recursos" {
+
+  enum TipoRecurso {
+    MADERA
+    PIEDRA
+    ALIMENTO
+  }
+
+  abstract class ContenedorRecurso {
+    - cantidadDisponible: int
+    + getCantidad(): int
+    + reducirCantidad(unidades: int)
+    + estaAgotado(): boolean
+    + getTipoRecurso(): TipoRecurso
+  }
+
+  class Bosque {
+    + getTipoRecurso(): TipoRecurso
+  }
+
+  class Cantera {
+    - vecesExplotada: int
+    + getTipoRecurso(): TipoRecurso
+    + calcularExtraccion(baseRecoleccion: int): int
+  }
+
+  class Arbusto {
+    + getTipoRecurso(): TipoRecurso
+  }
+}
+
+' ═══════════════════════════════════════════════
+' PAQUETE: ENTIDADES Y COMBATE
+' ═══════════════════════════════════════════════
+package "Entidades y Combate" {
+
+  interface Atacable {
+    + recibirDanio(danio: int)
+    + getDefensa(): int
+    + contraatacar(agresor: Atacable)
+  }
+
+  package "Edificaciones" {
+
+    enum TipoEdificio {
+      CIUDADELA
+      CASA
+      CUARTEL
+      TORRE
+    }
+
+    abstract class Edificio {
+      - puntosDeVida: int
+      - puntosDeVidaMax: int
+      - capacidadDefensivaBase: int
+      - capacidadOfensivaBase: int
+      - aforo: int
+      - propietario: Civilizacion
+      + getPuntosDeVida(): int
+      + recibirDanio(danio: int)
+      + contraatacar(agresor: Atacable)
+      + estaDestruido(): boolean
+      + calcularCosteReparacion(puntosARecuperar: int): Map<TipoRecurso, int>
+      + reparar(puntosARecuperar: int)
+      + getCeldaOcupada(): Celda
+      + getPersonajesEnInterior(): List<Personaje>
+      + agregarPersonaje(p: Personaje): boolean
+      + getDefensa(): int
+      + calcularAtaqueTotal(): int
+      + capturar(nuevaCiv: Civilizacion)
+    }
+
+    class Ciudadela {
+      + crearPaisano(): Paisano
+      + recibirRecursos(tipo: TipoRecurso, cantidad: int)
+      + restaurarSalud(p: Personaje)
+    }
+
+    class Casa {
+      - capacidadAlojamiento: int
+      + getCapacidadAlojamiento(): int
+    }
+
+    class Cuartel {
+      + crearSoldado(tipo: TipoSoldado): Soldado
+      + restaurarSalud(s: Soldado)
+    }
+
+    class Torre {
+      + atacarAutomaticamente(enemigo: Personaje)
+      + onEnemigoEnVecindad(enemigo: Personaje)
+    }
+  }
+
+  package "Unidades Tácticas" {
+
+    enum TipoSoldado {
+      LEGIONARIO
+      CABALLERO
+      ARQUERO
+    }
+
+    abstract class Personaje {
+      - nombre: String
+      - puntosDeVida: int
+      - puntosDeVidaMax: int
+      - energia: int
+      - armadura: int
+      - capacidadAtaque: int
+      - rangoMovimiento: int = 1
+      - rangoAtaque: int = 1
+      + mover(dir: DireccionMovimiento)
+      + atacar(objetivo: Atacable)
+      + contraatacar(agresor: Atacable)
+      + estaVivo(): boolean
+      + getPosicion(): Celda
+      + getDefensa(): int
+      + recibirDanio(danio: int)
+    }
+
+    class Paisano {
+      - capacidadRecoleccion: int
+      - cargaActual: int
+      - cargaMaxima: int
+      + recolectarRecurso(contenedor: ContenedorRecurso)
+      + entregarRecursos(ciudadela: Ciudadela)
+      + construirEdificio(tipo: TipoEdificio, celda: Celda): Edificio
+      + repararEdificio(edificio: Edificio, puntos: int)
+      + descansar(ciudadela: Ciudadela)
+    }
+
+    abstract class Soldado {
+      + descansar(cuartel: Cuartel)
+    }
+
+    class Legionario {
+    }
+
+    class Caballero {
+    }
+
+    class Arquero {
+    }
+
+    class Grupo {
+      + mover(dir: DireccionMovimiento)
+      + atacar(objetivo: Atacable)
+      + disolver()
+      + desligarPersonaje(p: Personaje): Personaje
+      + recolectarRecurso(contenedor: ContenedorRecurso)
+      + repararEdificio(edificio: Edificio, puntos: int)
+      + cobijarse(edificio: Edificio)
+      + getCapacidadAtaqueTotal(): int
+      + getDefensa(): int
+      + recibirDanio(danio: int)
+      + contraatacar(agresor: Atacable)
+    }
+  }
+}
+
+' ═══════════════════════════════════════════════
+' RELACIONES
+' ═══════════════════════════════════════════════
+
+Juego "1" *-- "1" Mapa
+Juego "1" *-- "1..4" Jugador
+Juego "1" *-- "1" InterfazASCII
+Juego "1" *-- "1" ControladorTurno
+
+Jugador "1" *-- "1" Civilizacion
+Civilizacion "1" *-- "1" RegistroVisibilidad
+Civilizacion "1" o-- "0..*" Personaje
+Civilizacion "1" o-- "0..*" Edificio
+
+Mapa "1" *-- "many" Celda
+Celda "1" o-- "0..1" ContenedorRecurso
+Celda "1" o-- "0..1" Edificio
+Celda "1" o-- "0..*" Personaje
+Celda --> TipoCelda
+
+RegistroVisibilidad ..> Celda : registra
+
+Atacable <|.. Personaje
+Atacable <|.. Edificio
+Atacable <|.. Grupo
+
+Personaje <|-- Paisano
+Personaje <|-- Soldado
+Soldado <|-- Legionario
+Soldado <|-- Caballero
+Soldado <|-- Arquero
+
+Edificio <|-- Ciudadela
+Edificio <|-- Casa
+Edificio <|-- Cuartel
+Edificio <|-- Torre
+
+ContenedorRecurso <|-- Bosque
+ContenedorRecurso <|-- Cantera
+ContenedorRecurso <|-- Arbusto
+
+Personaje --> Celda : ocupa
+
+Edificio "1" o-- "0..*" Personaje : guarnición
+Grupo "1" o-- "2..*" Personaje : agrupa
+
+Paisano ..> ContenedorRecurso : recolecta
+Paisano ..> Ciudadela : entrega recursos
+Paisano ..> Edificio : construye / repara
+
+Ciudadela ..> Paisano : crea
+Cuartel ..> Soldado : crea
+
+Torre ..> Atacable : ataca automáticamente
+Personaje ..> Atacable : ataca
+
+@enduml

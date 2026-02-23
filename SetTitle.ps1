@@ -1,0 +1,1 @@
+$Host.UI.RawUI.WindowTitle = "Kripta Studios: StarUML <-> PlantUML Converter"

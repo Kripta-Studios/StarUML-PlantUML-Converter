@@ -1,0 +1,4 @@
+{
+  "cmdctrl-shift-c": "export-plantuml:copy-to-clipboard",
+  "cmdctrl-shift-v": "import-plantuml:from-clipboard"
+}

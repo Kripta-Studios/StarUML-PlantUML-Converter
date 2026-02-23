@@ -1,0 +1,335 @@
+@startuml Age_of_Empires_UseCases_v5
+
+skinparam packageStyle rectangle
+skinparam actorStyle awesome
+skinparam usecaseBackgroundColor #FFFFFE
+skinparam usecaseBorderColor #666666
+skinparam usecaseFontSize 10
+skinparam packageBackgroundColor #F4F4FF
+skinparam packageBorderColor #9999BB
+skinparam packageFontSize 11
+skinparam packageFontStyle bold
+skinparam ArrowColor #444444
+skinparam ArrowFontSize 9
+skinparam actorBackgroundColor #E0F0E0
+skinparam actorBorderColor #449944
+skinparam actorFontSize 11
+skinparam noteBackgroundColor #FFFFF0
+skinparam noteFontSize 9
+skinparam defaultTextAlignment center
+
+top to bottom direction
+
+' ══════════════════════════════════════════════════════
+' ACTORES
+' ══════════════════════════════════════════════════════
+actor "Jugador" as J
+actor "Jugador Activo" as JA
+actor "Sistema (Motor)" as S
+actor "Personaje" as ACT_Per
+actor "Paisano" as ACT_Pai
+actor "Soldado" as ACT_Sol
+actor "Legionario" as ACT_Leg
+actor "Caballero" as ACT_Cab
+actor "Arquero" as ACT_Arq
+actor "Grupo" as ACT_Grp
+
+' ══════════════════════════════════════════════════════
+' PAQUETE 1 — GESTIÓN DE PARTIDA
+' ══════════════════════════════════════════════════════
+package "Gestión de Partida" {
+  usecase "Iniciar partida" as UC01
+  usecase "Configurar mapa" as UC02
+  usecase "Cargar mapa por defecto" as UC02a
+  usecase "Generar mapa pseudoaleatorio" as UC02b
+  usecase "Cargar mapa desde archivo" as UC02c
+  usecase "Listar civilizaciones" as UC03
+  usecase "Pasar turno" as UC04
+  usecase "Verificar eliminacion de jugador" as UC05
+}
+
+' ══════════════════════════════════════════════════════
+' PAQUETE 2 — VISUALIZACIÓN ASCII
+' ══════════════════════════════════════════════════════
+package "Visualizacion ASCII" {
+  usecase "Dibujar mapa (celdas visibles)" as UC10
+  usecase "Describir celda visible" as UC11
+  usecase "Listar personajes y edificios" as UC12
+  usecase "Describir personaje" as UC13
+  usecase "Describir edificio" as UC14
+  usecase "Describir contenedor de recurso" as UC15
+  usecase "Mostrar recursos de civilizacion" as UC16
+  usecase "Leer comando del jugador" as UC17
+}
+
+' ══════════════════════════════════════════════════════
+' PAQUETE 3 — NIEBLA DE GUERRA
+' ══════════════════════════════════════════════════════
+package "Niebla de Guerra" {
+  usecase "Registrar celda visible" as UC20
+  usecase "Registrar celdas adyacentes visibles" as UC21
+  usecase "Consultar visibilidad de celda" as UC22
+}
+
+' ══════════════════════════════════════════════════════
+' PAQUETE 4 — MOVIMIENTO
+' ══════════════════════════════════════════════════════
+package "Movimiento" {
+  usecase "Mover personaje (caso general)" as UC30
+  usecase "Mover paisano (1 celda)" as UC30a
+  usecase "Mover legionario (1 celda)" as UC30b
+  usecase "Mover arquero (1 celda)" as UC30c
+  usecase "Mover caballero (2 celdas)" as UC30d
+  usecase "Mover grupo" as UC31
+}
+
+' ══════════════════════════════════════════════════════
+' PAQUETE 5 — RECOLECCIÓN DE RECURSOS
+' ══════════════════════════════════════════════════════
+package "Recoleccion de Recursos" {
+  usecase "Recolectar recurso (caso general)" as UC40
+  usecase "Recolectar madera (bosque)" as UC40a
+  usecase "Recolectar piedra (cantera)" as UC40b
+  usecase "Recolectar alimento (arbusto)" as UC40c
+  usecase "Verificar carga maxima del paisano" as UC45
+  usecase "Agotar contenedor: celda a pradera" as UC46a
+  usecase "Aplicar degradacion de cantera" as UC46b
+  usecase "Entregar recursos a ciudadela" as UC43
+  usecase "Transferir recursos a civilizacion" as UC44
+}
+
+' ══════════════════════════════════════════════════════
+' PAQUETE 6 — CONSTRUCCIÓN Y REPARACIÓN
+' ══════════════════════════════════════════════════════
+package "Construccion y Reparacion (Paisanos)" {
+  usecase "Construir edificio (caso general)" as UC50
+  usecase "Construir ciudadela" as UC50a
+  usecase "Construir casa" as UC50b
+  usecase "Construir cuartel" as UC50c
+  usecase "Construir torre" as UC50d
+  usecase "Reparar edificio adyacente" as UC51
+  usecase "Verificar recursos para construir" as UC52
+  usecase "Marcar celda como no transitable" as UC53
+}
+
+' ══════════════════════════════════════════════════════
+' PAQUETE 7 — PRODUCCIÓN DE UNIDADES
+' ══════════════════════════════════════════════════════
+package "Produccion de Unidades" {
+  usecase "Crear unidad (caso general)" as UC60g
+  usecase "Crear paisano (ciudadela)" as UC60
+  usecase "Crear soldado (cuartel)" as UC61
+  usecase "Crear legionario" as UC61a
+  usecase "Crear caballero" as UC61b
+  usecase "Crear arquero" as UC61c
+  usecase "Posicionar en celda vecina libre" as UC62
+  usecase "Verificar espacio y alimento" as UC63
+}
+
+' ══════════════════════════════════════════════════════
+' PAQUETE 8 — COMBATE
+' ══════════════════════════════════════════════════════
+package "Combate" {
+  usecase "Atacar entidad enemiga (caso general)" as UC70
+  usecase "Atacar personaje adyacente" as UC70a
+  usecase "Atacar edificio adyacente" as UC70b
+  usecase "Atacar a distancia (arquero 2 celdas)" as UC70c
+  usecase "Atacar desde edificio guarnecido" as UC70d
+  usecase "Atacar como grupo (ataque sumado)" as UC70e
+  usecase "Calcular dano neto (ataque - defensa)" as UC71
+  usecase "Contraatacar automaticamente" as UC72
+  usecase "Repartir dano en grupo" as UC73
+  usecase "Capturar edificio sin propietario" as UC74
+}
+
+' ══════════════════════════════════════════════════════
+' PAQUETE 9 — GUARNICIÓN Y REFUGIO
+' ══════════════════════════════════════════════════════
+package "Guarnicion y Refugio" {
+  usecase "Entrar en edificio propio" as UC80
+  usecase "Cobijarse en edificio (grupo)" as UC80b
+  usecase "Incrementar defensa y ataque del edificio" as UC81
+  usecase "Recuperar salud en edificio compatible" as UC82
+  usecase "Descansar (caso general)" as UC83g
+  usecase "Descansar en ciudadela (paisano)" as UC83
+  usecase "Descansar en cuartel (soldado)" as UC84
+}
+
+' ══════════════════════════════════════════════════════
+' PAQUETE 10 — GESTIÓN DE GRUPOS
+' ══════════════════════════════════════════════════════
+package "Gestion de Grupos" {
+  usecase "Agrupar personajes en misma celda" as UC90
+  usecase "Disolver grupo" as UC96
+  usecase "Desligar personaje del grupo" as UC97
+}
+
+' ══════════════════════════════════════════════════════
+' PAQUETE 11 — DEFENSA AUTOMÁTICA (TORRE)
+' ══════════════════════════════════════════════════════
+package "Defensa Automatica - Torre" {
+  usecase "Detectar enemigo en celda vecina" as UC100
+  usecase "Atacar enemigo automaticamente" as UC101
+  usecase "Atacar por accion enemiga en vecindad" as UC102
+}
+
+' ══════════════════════════════════════════════════════
+' JERARQUÍAS DE ACTORES (generalizaciones)
+' ══════════════════════════════════════════════════════
+J       <|-- JA
+ACT_Per <|-- ACT_Pai
+ACT_Per <|-- ACT_Sol
+ACT_Sol <|-- ACT_Leg
+ACT_Sol <|-- ACT_Cab
+ACT_Sol <|-- ACT_Arq
+
+' ══════════════════════════════════════════════════════
+' JERARQUÍAS DE CASOS DE USO (generalizaciones)
+' ══════════════════════════════════════════════════════
+UC30  <|-- UC30a
+UC30  <|-- UC30b
+UC30  <|-- UC30c
+UC30  <|-- UC30d
+UC30  <|-- UC31
+
+UC40  <|-- UC40a
+UC40  <|-- UC40b
+UC40  <|-- UC40c
+
+UC50  <|-- UC50a
+UC50  <|-- UC50b
+UC50  <|-- UC50c
+UC50  <|-- UC50d
+
+UC60g <|-- UC60
+UC60g <|-- UC61
+UC61  <|-- UC61a
+UC61  <|-- UC61b
+UC61  <|-- UC61c
+
+UC70  <|-- UC70a
+UC70  <|-- UC70b
+UC70  <|-- UC70c
+UC70  <|-- UC70d
+UC70  <|-- UC70e
+
+UC80  <|-- UC80b
+UC83g <|-- UC83
+UC83g <|-- UC84
+
+' ══════════════════════════════════════════════════════
+' RELACIONES <<include>> Y <<extend>>
+' ══════════════════════════════════════════════════════
+
+' Partida
+UC01  ..> UC02  : <<include>>
+UC02  ..> UC02a : <<extend>>
+UC02  ..> UC02b : <<extend>>
+UC02  ..> UC02c : <<extend>>
+UC04  ..> UC05  : <<include>>
+
+' Visualización
+UC10  ..> UC22  : <<include>>
+UC11  ..> UC13  : <<extend>>
+UC11  ..> UC14  : <<extend>>
+UC11  ..> UC15  : <<extend>>
+
+' Movimiento
+UC30  ..> UC20  : <<include>>
+UC30  ..> UC21  : <<include>>
+
+' Recolección
+UC40  ..> UC45  : <<include>>
+UC40  ..> UC46a : <<extend>>
+UC40b ..> UC46b : <<include>>
+UC43  ..> UC44  : <<include>>
+
+' Construcción
+UC50  ..> UC52  : <<include>>
+UC50  ..> UC53  : <<include>>
+UC51  ..> UC52  : <<include>>
+
+' Producción
+UC60g ..> UC63  : <<include>>
+UC60g ..> UC62  : <<include>>
+
+' Combate
+UC70  ..> UC71  : <<include>>
+UC70  ..> UC72  : <<include>>
+UC70e ..> UC73  : <<extend>>
+UC74  ..> UC05  : <<extend>>
+
+' Guarnición
+UC80  ..> UC81  : <<include>>
+UC80  ..> UC82  : <<include>>
+UC83g ..> UC82  : <<include>>
+
+' Torre
+UC100 ..> UC101 : <<include>>
+UC101 ..> UC71  : <<include>>
+UC101 ..> UC72  : <<include>>
+UC102 ..> UC101 : <<include>>
+
+' ══════════════════════════════════════════════════════
+' ASOCIACIONES ACTOR → CASO DE USO
+' ══════════════════════════════════════════════════════
+
+JA      --> UC01
+JA      --> UC02
+JA      --> UC03
+JA      --> UC04
+JA      --> UC10
+JA      --> UC11
+JA      --> UC12
+JA      --> UC16
+JA      --> UC17
+
+ACT_Pai --> UC30a
+ACT_Pai --> UC40
+ACT_Pai --> UC43
+ACT_Pai --> UC50
+ACT_Pai --> UC51
+ACT_Pai --> UC83
+
+ACT_Sol --> UC70a
+ACT_Sol --> UC70b
+ACT_Sol --> UC74
+ACT_Sol --> UC80
+ACT_Sol --> UC84
+
+ACT_Leg --> UC30b
+ACT_Cab --> UC30d
+ACT_Arq --> UC30c
+ACT_Arq --> UC70c
+
+ACT_Grp --> UC31
+ACT_Grp --> UC70e
+ACT_Grp --> UC80b
+ACT_Grp --> UC40
+ACT_Grp --> UC51
+ACT_Grp --> UC90
+ACT_Grp --> UC96
+ACT_Grp --> UC97
+
+S --> UC05
+S --> UC20
+S --> UC21
+S --> UC22
+S --> UC44
+S --> UC45
+S --> UC46a
+S --> UC46b
+S --> UC52
+S --> UC53
+S --> UC62
+S --> UC63
+S --> UC71
+S --> UC72
+S --> UC73
+S --> UC81
+S --> UC82
+S --> UC100
+S --> UC101
+S --> UC102
+
+@enduml

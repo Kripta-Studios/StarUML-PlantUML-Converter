@@ -1,0 +1,22 @@
+{
+  "name": "timewarp.plantuml",
+  "title": "PlantUML Export",
+  "description": "Export & Import StarUML diagrams to PlantUML format",
+  "homepage": "https://github.com/TimeWarpEngineering/staruml-export-plantuml",
+  "version": "1.0.0",
+  "keywords": [
+    "plantuml",
+    "export",
+    "import",
+    "chatgpt"
+  ],
+  "author": {
+    "name": "Kripta Studios",
+    "email": "contact@kriptastudios.com",
+    "url": "https://github.com/Kripta-Studios"
+  },
+  "license": "MIT",
+  "engines": {
+    "staruml": ">=3.0.0"
+  }
+}
