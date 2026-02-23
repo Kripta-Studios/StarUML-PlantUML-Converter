@@ -481,14 +481,22 @@ function convertFromPlantUML(plantUML) {
       });
 
       // Helper to create view
-      const createViewSafe = (model, x, y) => {
+      const createViewSafe = (model, x, y, containerView = null) => {
         try {
-          let view = app.factory.createViewOf({ model: model, diagram: currentDiagram, x: x, y: y });
+          let options = { model: model, diagram: currentDiagram, x: x, y: y };
+          if (containerView) {
+            options.containerView = containerView;
+          }
+          let view = app.factory.createViewOf(options);
           if (view) {
             view.showNamespace = false;
             // Provide a generous width for UseCases based on text length to avoid cropping
             if (model.name && model instanceof type.UMLUseCase) {
               view.width = Math.max(120, model.name.length * 8 + 30);
+            }
+            if (model.name && model instanceof type.UMLPackage) {
+              view.width = Math.max(150, model.name.length * 10 + 40);
+              view.height = 100; // Default minimum height
             }
             modelToView[model._id] = view;
             viewsCreated.push(view);
@@ -500,17 +508,45 @@ function convertFromPlantUML(plantUML) {
         }
       };
 
+      // Helper to fetch direct owning Package View if any
+      const getPackageContainerView = (model) => {
+        if (model._parent && model._parent instanceof type.UMLPackage) {
+          return modelToView[model._parent._id] || null;
+        }
+        return null; // Root or other parent
+      };
+
+      // Helper to layout a group of usecases (returns height used)
+      const layoutUseCaseGroup = (ucs, startX, startY, parentActorId = null) => {
+        let maxUcYOffset = 0;
+        let ucX = startX;
+        let ucY = startY;
+
+        ucs.forEach((uc, index) => {
+          let containerView = getPackageContainerView(uc);
+          createViewSafe(uc, ucX, ucY, containerView);
+
+          ucX += X_SPACING;
+          if (index % 2 !== 0 && index < ucs.length - 1) {
+            // New row of use cases
+            ucX = startX;
+            ucY += Y_SPACING;
+            maxUcYOffset += Y_SPACING;
+          }
+        });
+        return maxUcYOffset;
+      };
+
       // 4. Position Layout
       const START_X = 100;
       let currentActorY = 100;
       const ACTOR_X = START_X;
-      const EXCLUSIVE_UC_START_X = START_X + 350; // increased for indentation
-      const SHARED_UC_X = START_X + 700; // adjusted for new exclusive X
       const Y_SPACING = 150;
-      const X_SPACING = 200;
+      const X_SPACING = 300; // Increased spacing
 
       // Track Actor Y positions for avergaging shared use cases later
       const actorYPositions = {};
+
 
       // Hierarchical Actor Sorting
       const actorHierarchy = {}; // parentId -> array of child models
@@ -546,12 +582,24 @@ function convertFromPlantUML(plantUML) {
         if (actorLevels[a._id] === undefined) traverseActor(a, 0);
       });
 
+      // A.0 Draw Packages first (so they act as containers behind the use cases in the Z-order)
+      // We will place them initially at a temporary location, then auto-fit them later.
+      const packages = others.filter(m => m instanceof type.UMLPackage);
+      packages.forEach(pkg => {
+        createViewSafe(pkg, 0, 0);
+      });
+
       // A. Draw Actors and their Exclusive UseCases
+      let currentExclusiveStartX = START_X + 400; // Base starting X for exclusive use cases
+      let maxExclusiveX = currentExclusiveStartX; // Track maximum X reached for placing shared use cases later
+
       sortedActors.forEach(actor => {
         // Draw Actor with Indentation based on Hierarchy Level
         let level = actorLevels[actor._id] || 0;
         let actX = ACTOR_X + (level * 50);
-        let actorView = createViewSafe(actor, actX, currentActorY);
+
+        let containerView = getPackageContainerView(actor);
+        let actorView = createViewSafe(actor, actX, currentActorY, containerView);
         let actorCenterY = currentActorY + 40; // rough center
 
         if (actorView) {
@@ -559,31 +607,30 @@ function convertFromPlantUML(plantUML) {
         }
 
         let ucs = exclusiveUseCases[actor._id] || [];
-        let ucX = EXCLUSIVE_UC_START_X;
+        let ucX = currentExclusiveStartX;
         let ucY = currentActorY; // start drawing ucs aligned with actor top
 
-        let maxUcYOffset = 0;
+        let maxUcYOffset = layoutUseCaseGroup(ucs, ucX, ucY, actor._id);
 
-        ucs.forEach((uc, index) => {
-          // simple grid for exclusive use cases next to actor
-          createViewSafe(uc, ucX, ucY);
-
-          ucX += X_SPACING;
-          if (index % 2 !== 0 && index < ucs.length - 1) {
-            // New row of use cases for this actor if there are many
-            ucX = EXCLUSIVE_UC_START_X;
-            ucY += Y_SPACING;
-            maxUcYOffset += Y_SPACING;
-          }
-        });
+        // Track the maximum X we reach
+        let furthestXThisActor = ucX + (ucs.length > 1 ? X_SPACING : 0);
+        if (furthestXThisActor > maxExclusiveX) {
+          maxExclusiveX = furthestXThisActor;
+        }
 
         // Advance Y for the next Actor
-        // Ensure enough space based on the actor itself or its block of exclusive use cases
         currentActorY += Math.max(Y_SPACING * 1.5, maxUcYOffset + Y_SPACING);
+
+        // Advance X offset for the next Actor's grid
+        if (ucs.length > 0) {
+          currentExclusiveStartX += 500;
+        }
       });
 
       // B. Draw Shared Use Cases
       let sharedUcY = 100;
+      let SHARED_UC_X = maxExclusiveX + 400; // Dynamically place shared cases to the right of everything
+
       sharedUseCases.forEach((uc, index) => {
         // Attempt to place it at the average Y of connected actors to minimize crossing
         const connectedActors = Array.from(useCaseToActors[uc._id]);
@@ -598,13 +645,12 @@ function convertFromPlantUML(plantUML) {
 
         let targetY = count > 0 ? (sumY / count) : sharedUcY;
 
-        // rudimentary collision avoidance (just stack them if they fall on same Y)
-        // A more advanced algo would check bounds, here we just ensure a minimum spacing from previous
         if (index > 0 && Math.abs(targetY - sharedUcY) < Y_SPACING) {
           targetY = sharedUcY + Y_SPACING;
         }
 
-        createViewSafe(uc, SHARED_UC_X, targetY);
+        let containerView = getPackageContainerView(uc);
+        createViewSafe(uc, SHARED_UC_X, targetY, containerView);
         sharedUcY = targetY; // track last placed
       });
 
@@ -612,12 +658,45 @@ function convertFromPlantUML(plantUML) {
       let orphanX = START_X;
       let orphanY = Math.max(currentActorY, sharedUcY + Y_SPACING);
 
-      [...orphanUseCases, ...others].forEach(model => {
-        createViewSafe(model, orphanX, orphanY);
+      [...orphanUseCases, ...others.filter(m => !(m instanceof type.UMLPackage))].forEach(model => {
+        let containerView = getPackageContainerView(model);
+        createViewSafe(model, orphanX, orphanY, containerView);
         orphanX += X_SPACING;
-        if (orphanX > START_X + 800) {
+        if (orphanX > START_X + 1200) {
           orphanX = START_X;
           orphanY += Y_SPACING;
+        }
+      });
+
+      // D. Auto-size Packages to wrap their children
+      // We must do this after all children are placed. StarUML automatically expands containers but
+      // sometimes requires an explicit resize command or a manual drag. We'll set a generous size 
+      // based on children content.
+      packages.forEach(pkg => {
+        let pkgView = modelToView[pkg._id];
+        if (pkgView) {
+          // Manually search all created views for those whose model belongs to this package
+          const childViews = viewsCreated.filter(v => v.model && v.model._parent && v.model._parent._id === pkg._id);
+
+          if (childViews.length > 0) {
+            let minX = Number.MAX_VALUE, minY = Number.MAX_VALUE, maxX = 0, maxY = 0;
+            childViews.forEach(cv => {
+              if (cv.left < minX) minX = cv.left;
+              if (cv.top < minY) minY = cv.top;
+              if (cv.left + cv.width > maxX) maxX = cv.left + cv.width;
+              if (cv.top + cv.height > maxY) maxY = cv.top + cv.height;
+            });
+
+            // Apply Bounds padding
+            pkgView.left = minX - 40;
+            pkgView.top = minY - 50;
+            pkgView.width = (maxX - minX) + 80;
+            pkgView.height = (maxY - minY) + 90;
+          } else {
+            // If completely empty, at least give it some dimensions
+            pkgView.width = 150;
+            pkgView.height = 100;
+          }
         }
       });
 
